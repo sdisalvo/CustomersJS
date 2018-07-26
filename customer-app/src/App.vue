@@ -1,10 +1,11 @@
 <template>
   <v-app>
-    <v-toolbar app :clipped-left="clipped">
-      <v-toolbar-title v-text="title"></v-toolbar-title>
-      <v-spacer></v-spacer>
-      <v-btn flat small v-on:click="login">{{ logintxt }}</v-btn>
-    </v-toolbar>
+      <v-toolbar app :clipped-left="clipped">
+          <v-toolbar-title v-text="title"></v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-avatar><img v-bind:src="profileimg" v-if="seen"></v-avatar>
+          <v-btn flat small v-on:click="login">{{ logintxt }}</v-btn>
+      </v-toolbar>
     <v-content>
         <div id="divcontent" v-if="seen" >
             <Data />
@@ -38,7 +39,8 @@
               rightDrawer: false,
             title: 'AWS Serverless Sample',
             logintxt: "Login",
-            seen: false
+            seen: false,
+            profileimg: null
          }
         },
         mounted: function () {
@@ -62,7 +64,8 @@
                     }).then(function () {
                         var GoogleAuth = gapi.auth2.getAuthInstance();
                         // Listen for sign-in state changes.
-                        GoogleAuth.isSignedIn.listen( self.updateSigninStatus );
+                        GoogleAuth.isSignedIn.listen(self.updateSigninStatus);
+                        self.updateSigninStatus();
                     });
                 } catch (err) {
                     this.logintxt = "Login error!";
@@ -77,6 +80,8 @@
                 if (isAuthorized) {
                     this.logintxt = "Logout";
                     this.seen = true;
+                    var profile = user.getBasicProfile();
+                    this.profileimg = profile.getImageUrl();
                 } else {
                     this.logintxt = "Login";
                     this.seen = false;
