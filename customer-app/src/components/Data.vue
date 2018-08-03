@@ -58,7 +58,11 @@
                 var isAuthorized = user.hasGrantedScopes( 'email profile' );
 
                 if (isAuthorized) {
-                    this.loading = "true";
+                    var self = this;
+                    this.loading = true;
+
+                    console.log("Call remote function with data: " + JSON.stringify(this.customerkey));
+
                     // Initialize the Amazon Cognito credentials provider
                     AWS.config.region = 'eu-west-1'; // Region
                     AWS.config.credentials = new AWS.CognitoIdentityCredentials({
@@ -68,7 +72,7 @@
                         }
                     });
 
-                    console.log("Call remote function with data: " + JSON.stringify(this.customerkey));
+                    /**** this code for call Lambda directly *
                     var lambda = new AWS.Lambda({ region: 'eu-west-1' });
                     var pullParams = {
                         FunctionName: 'ci-stack-getCustomerInfo-X6CV8TRD0YAB',
@@ -76,9 +80,7 @@
                         LogType: 'None',
                         Payload: JSON.stringify(this.customerkey)
                     };
-
                     // Call the Lambda function to collect the spin results
-                    var self = this;
                     lambda.invoke(pullParams,
                         function (err, data) {
                         if (err) {
@@ -89,6 +91,33 @@
                             self.customers = obj.customers;
                             self.loading = false;
                         }
+                    });*******/
+
+                    var searchKey = this.customerkey;
+                    AWS.config.credentials.refresh(function () {
+
+                        var apigClientFactory = require('aws-api-gateway-client').default;
+
+                        var apigClient = apigClientFactory.newClient({
+                            invokeUrl: 'https://nglrxx3933.execute-api.eu-west-1.amazonaws.com', // REQUIRED
+                            accessKey: AWS.config.credentials.accessKeyId,
+                            secretKey: AWS.config.credentials.secretAccessKey,
+                            sessionToken: AWS.config.credentials.sessionToken,
+                            region: 'eu-west-1'
+                        });
+                        var additionalParams = { headers: {}, queryParams: {} };
+
+                        apigClient.invokeApi(
+                            null,
+                            "/getCustomerInfoDeploy/ci-stack-getCustomerInfo-X6CV8TRD0YAB",
+                            "POST", additionalParams, searchKey)
+                            .then(function (result) {
+                                self.customers = result.data.customers;
+                                console.log("Customers: " + JSON.stringify(result.data.customers));
+                                self.loading = false;
+                            }).catch(function (result) {
+                                console.log("Lambda call error: " + result);
+                            });
                     });
                 } else {
                     console.log("Not logged !!!");
